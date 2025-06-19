@@ -7,7 +7,7 @@
     "url": "https://github.com/AviadMal/RTLint"
   },
   "version": "0.0.2",
-  "publisher": "your-name",
+  "publisher": "aviad",
   "engines": {
     "vscode": "^1.84.0"
   },

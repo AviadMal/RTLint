@@ -1,4 +1,4 @@
-# RTLint - Verilog/SystemVerilog Linter for VSCode
+# RTLint - Verilog/SystemVerilog/VHDL Linter for VSCode
 
 <p align="left">
   <img src="https://github.com/AviadMal/RTLint/blob/main/image/logo.png" alt="RTLint Logo" width="300">

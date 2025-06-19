@@ -50,6 +50,9 @@ const os = __importStar(require("os"));
 const fs = __importStar(require("fs"));
 function activate(context) {
     const diagnosticCollection = vscode.languages.createDiagnosticCollection('verilog');
+    const homeDir = process.env.HOME || process.env.USERPROFILE || 'C:/temp';
+    const unixHome = homeDir.replace(/\\/g, '/');
+    const workDir = `${unixHome}/work`;
     const getSlangExecutablePath = () => {
         const platform = os.platform();
         const binaryName = platform === 'win32' ? 'slang.exe' :
@@ -149,21 +152,36 @@ function activate(context) {
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
         vscode.window.showInformationMessage(`Linter set to ${choice}`);
     });
-    const runLinter = (document) => {
+    const runLinter = (document) => __awaiter(this, void 0, void 0, function* () {
         var _a, _b, _c, _d, _e, _f;
         const filePath = document.fileName;
         const ext = path.extname(filePath);
         if (!['.v', '.sv', '.svh', '.vhd'].includes(ext))
             return;
         const userConfig = getUserConfig();
-        const selectedTool = userConfig.tool;
+        let selectedTool = context.globalState.get('verilogLinter.selectedTool', 'questa');
         const questaBasePath = userConfig.questaPath;
         const config = vscode.workspace.getConfiguration('verilogLinter');
         const compileFile = config.get('compileFile');
+        let effectiveCompileFile = compileFile;
+        if (!effectiveCompileFile && (selectedTool === 'questa' || selectedTool === 'modelsim')) {
+            const verificationFiles = yield vscode.workspace.findFiles('**/verification/**/sim/compile_env.do', '**/node_modules/**', 1);
+            if (verificationFiles.length > 0) {
+                effectiveCompileFile = vscode.workspace.asRelativePath(verificationFiles[0].fsPath);
+                vscode.window.showInformationMessage(`Auto-detected compile file: ${effectiveCompileFile}`);
+            }
+            else {
+                const simFiles = yield vscode.workspace.findFiles('**/sim/compile_env.do', '**/node_modules/**', 1);
+                if (simFiles.length > 0) {
+                    effectiveCompileFile = vscode.workspace.asRelativePath(simFiles[0].fsPath);
+                    vscode.window.showInformationMessage(`Auto-detected compile file: ${effectiveCompileFile}`);
+                }
+            }
+        }
         let exePath;
         let args;
         let cwd = '';
-        vscode.window.showInformationMessage(`[Linter] Using tool: ${selectedTool}`);
+        // vscode.window.showInformationMessage(`[Linter] Using tool: ${selectedTool}`);
         if (selectedTool === 'slang') {
             exePath = getSlangExecutablePath();
             if (compileFile) {
@@ -181,14 +199,21 @@ function activate(context) {
             exePath = getQuestaExecutable(questaBasePath);
             if (!exePath)
                 return;
-            if (compileFile) {
+            if (effectiveCompileFile) {
                 const workspaceFolder = (_f = (_e = (_d = vscode.workspace.workspaceFolders) === null || _d === void 0 ? void 0 : _d[0]) === null || _e === void 0 ? void 0 : _e.uri.fsPath) !== null && _f !== void 0 ? _f : '';
-                const fullCompilePath = path.isAbsolute(compileFile)
-                    ? compileFile
-                    : path.join(workspaceFolder, compileFile);
+                const fullCompilePath = path.isAbsolute(effectiveCompileFile)
+                    ? effectiveCompileFile
+                    : path.join(workspaceFolder, effectiveCompileFile);
                 const normalizedPath = fullCompilePath.replace(/\\/g, '/');
                 cwd = path.dirname(fullCompilePath);
-                args = ['-c', ' -do', ' "', 'set env_src ../src', '"', ' -do', ' "', 'do', normalizedPath, '"', ' -do', ' "', 'quit', '"'];
+                args = [
+                    '-c',
+                    ` -do "vlib ${workDir}"`,
+                    ` -do "vmap work ${workDir}"`,
+                    ` -do "set env_src ../src"`,
+                    ` -do "do ${normalizedPath}"`,
+                    ' -do "quit"'
+                ];
                 exePath = path.resolve(cwd, exePath);
             }
             else {
@@ -196,7 +221,7 @@ function activate(context) {
                 return;
             }
         }
-        vscode.window.showInformationMessage(`[Linter] Running: ${exePath} ${args.join(' ')}`);
+        // vscode.window.showInformationMessage(`[Linter] Running: ${exePath} ${args.join(' ')}`);
         const maxAttempts = 8;
         let attempts = 0;
         const tryRun = () => {
@@ -344,7 +369,7 @@ function activate(context) {
             });
         };
         tryRun();
-    };
+    });
     '';
     context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(runLinter), vscode.workspace.onDidOpenTextDocument(runLinter), vscode.workspace.onDidCloseTextDocument(doc => diagnosticCollection.delete(doc.uri)), vscode.commands.registerCommand('verilogLinter.selectCompileFile', selectCompileFile), vscode.commands.registerCommand('verilogLinter.selectLinterTool', selectLinterTool), vscode.commands.registerCommand('verilogLinter.toggleWarnings', toggleWarnings));
     if (vscode.window.activeTextEditor) {

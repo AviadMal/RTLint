@@ -6,6 +6,9 @@ import * as fs from 'fs';
 
 export function activate(context: vscode.ExtensionContext) {
   const diagnosticCollection = vscode.languages.createDiagnosticCollection('verilog');
+  const homeDir = process.env.HOME || process.env.USERPROFILE || 'C:/temp';
+  const unixHome = homeDir.replace(/\\/g, '/');
+  const workDir = `${unixHome}/work`;
 
   const getSlangExecutablePath = (): string => {
     const platform = os.platform();
@@ -131,22 +134,39 @@ const toggleWarnings = async () => {
 
 
 
-const runLinter = (document: vscode.TextDocument) => {
+const runLinter = async (document: vscode.TextDocument) => {
   const filePath = document.fileName;
   const ext = path.extname(filePath);
   if (!['.v', '.sv', '.svh', '.vhd'].includes(ext)) return;
 
   const userConfig = getUserConfig();
-  const selectedTool = userConfig.tool;
+  let selectedTool = context.globalState.get('verilogLinter.selectedTool', 'questa');
   const questaBasePath = userConfig.questaPath;
   const config = vscode.workspace.getConfiguration('verilogLinter');
   const compileFile: string | undefined = config.get('compileFile');
+
+
+  let effectiveCompileFile = compileFile;
+
+  if (!effectiveCompileFile && (selectedTool === 'questa' || selectedTool === 'modelsim')) {
+    const verificationFiles = await vscode.workspace.findFiles('**/verification/**/sim/compile_env.do', '**/node_modules/**', 1);
+    if (verificationFiles.length > 0) {
+      effectiveCompileFile = vscode.workspace.asRelativePath(verificationFiles[0].fsPath);
+      vscode.window.showInformationMessage(`Auto-detected compile file: ${effectiveCompileFile}`);
+    } else {
+      const simFiles = await vscode.workspace.findFiles('**/sim/compile_env.do', '**/node_modules/**', 1);
+      if (simFiles.length > 0) {
+        effectiveCompileFile = vscode.workspace.asRelativePath(simFiles[0].fsPath);
+        vscode.window.showInformationMessage(`Auto-detected compile file: ${effectiveCompileFile}`);
+      }
+    }
+  }
 
   let exePath: string;
   let args: string[];
   let cwd = '';
 
-  vscode.window.showInformationMessage(`[Linter] Using tool: ${selectedTool}`);
+  // vscode.window.showInformationMessage(`[Linter] Using tool: ${selectedTool}`);
 
   if (selectedTool === 'slang') {
     exePath = getSlangExecutablePath();
@@ -163,16 +183,25 @@ const runLinter = (document: vscode.TextDocument) => {
     exePath = getQuestaExecutable(questaBasePath);
     if (!exePath) return;
 
-    if (compileFile) {
+    if (effectiveCompileFile) {
       const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-      const fullCompilePath = path.isAbsolute(compileFile)
-        ? compileFile
-        : path.join(workspaceFolder, compileFile);
-
+      const fullCompilePath = path.isAbsolute(effectiveCompileFile)
+        ? effectiveCompileFile
+        : path.join(workspaceFolder, effectiveCompileFile);
+      
       const normalizedPath = fullCompilePath.replace(/\\/g, '/');
-
       cwd = path.dirname(fullCompilePath);
-      args = ['-c',' -do',' "','set env_src ../src', '"', ' -do',' "', 'do' , normalizedPath, '"',' -do',' "','quit', '"'];
+
+      args = [
+        '-c',
+        ` -do "vlib ${workDir}"`,
+        ` -do "vmap work ${workDir}"`,
+        ` -do "set env_src ../src"`,
+        ` -do "do ${normalizedPath}"`,
+        ' -do "quit"'
+      ];
+
+      
       exePath = path.resolve(cwd, exePath);
     } else {
       vscode.window.showErrorMessage('No compile file selected for Questa/ModelSim.');
@@ -180,7 +209,7 @@ const runLinter = (document: vscode.TextDocument) => {
     }
   }
 
-  vscode.window.showInformationMessage(`[Linter] Running: ${exePath} ${args.join(' ')}`);
+  // vscode.window.showInformationMessage(`[Linter] Running: ${exePath} ${args.join(' ')}`);
 
   const maxAttempts = 8;
   let attempts = 0;
