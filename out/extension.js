@@ -162,19 +162,19 @@ function activate(context) {
         let selectedTool = context.globalState.get('verilogLinter.selectedTool', 'questa');
         const questaBasePath = userConfig.questaPath;
         const config = vscode.workspace.getConfiguration('verilogLinter');
-        const compileFile = config.get('compileFile');
-        let effectiveCompileFile = compileFile;
-        if (!effectiveCompileFile && (selectedTool === 'questa' || selectedTool === 'modelsim')) {
+        // const compileFile: string | undefined = config.get('compileFile');
+        let compileFile = config.get('compileFile');
+        if (!compileFile && (selectedTool === 'questa' || selectedTool === 'modelsim')) {
             const verificationFiles = yield vscode.workspace.findFiles('**/verification/**/sim/compile_env.do', '**/node_modules/**', 1);
             if (verificationFiles.length > 0) {
-                effectiveCompileFile = vscode.workspace.asRelativePath(verificationFiles[0].fsPath);
-                vscode.window.showInformationMessage(`Auto-detected compile file: ${effectiveCompileFile}`);
+                compileFile = vscode.workspace.asRelativePath(verificationFiles[0].fsPath);
+                vscode.window.showInformationMessage(`Auto-detected compile file: ${compileFile}`);
             }
             else {
                 const simFiles = yield vscode.workspace.findFiles('**/sim/compile_env.do', '**/node_modules/**', 1);
                 if (simFiles.length > 0) {
-                    effectiveCompileFile = vscode.workspace.asRelativePath(simFiles[0].fsPath);
-                    vscode.window.showInformationMessage(`Auto-detected compile file: ${effectiveCompileFile}`);
+                    compileFile = vscode.workspace.asRelativePath(simFiles[0].fsPath);
+                    vscode.window.showInformationMessage(`Auto-detected compile file: ${compileFile}`);
                 }
             }
         }
@@ -199,11 +199,11 @@ function activate(context) {
             exePath = getQuestaExecutable(questaBasePath);
             if (!exePath)
                 return;
-            if (effectiveCompileFile) {
+            if (compileFile) {
                 const workspaceFolder = (_f = (_e = (_d = vscode.workspace.workspaceFolders) === null || _d === void 0 ? void 0 : _d[0]) === null || _e === void 0 ? void 0 : _e.uri.fsPath) !== null && _f !== void 0 ? _f : '';
-                const fullCompilePath = path.isAbsolute(effectiveCompileFile)
-                    ? effectiveCompileFile
-                    : path.join(workspaceFolder, effectiveCompileFile);
+                const fullCompilePath = path.isAbsolute(compileFile)
+                    ? compileFile
+                    : path.join(workspaceFolder, compileFile);
                 const normalizedPath = fullCompilePath.replace(/\\/g, '/');
                 cwd = path.dirname(fullCompilePath);
                 args = [
@@ -217,7 +217,7 @@ function activate(context) {
                 exePath = path.resolve(cwd, exePath);
             }
             else {
-                vscode.window.showErrorMessage('No compile file selected for Questa/ModelSim.');
+                // vscode.window.showErrorMessage('No compile file selected for Questa/ModelSim.');
                 return;
             }
         }
