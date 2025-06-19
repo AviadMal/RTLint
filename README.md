@@ -1,7 +1,7 @@
 # RTLint - Verilog/SystemVerilog Linter for VSCode
 
 <p align="left">
-  <img src="./image/logo.png" alt="RTLint Logo" width="300">
+  <img src="https://github.com/AviadMal/RTLint/blob/main/image/logo.png" alt="RTLint Logo" width="300">
 </p>
 
 **A lightweight, flexible linter for Verilog/SystemVerilog/VHDL (RTL) inside Visual Studio Code.**  

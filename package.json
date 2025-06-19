@@ -2,6 +2,10 @@
   "name": "rtlint",
   "displayName": "RTLint",
   "description": "Flexible RTL Linter for Verilog/SystemVerilog/VHDL using slang, Questa, or ModelSim",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AviadMal/RTLint"
+  },
   "version": "0.0.2",
   "publisher": "your-name",
   "engines": {
