@@ -1,0 +1,85 @@
+{
+  "name": "rtlint",
+  "displayName": "RTLint",
+  "description": "Flexible RTL Linter for Verilog/SystemVerilog/VHDL using slang, Questa, or ModelSim",
+  "version": "0.0.2",
+  "publisher": "your-name",
+  "engines": {
+    "vscode": "^1.84.0"
+  },
+  "categories": [
+    "Linters"
+  ],
+  "activationEvents": [
+    "onLanguage:verilog",
+    "onLanguage:systemverilog",
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "verilogLinter.selectLinterTool",
+        "title": "Select RTLint Linter Tool"
+      },
+      {
+        "command": "verilogLinter.selectCompileFile",
+        "title": "Select RTLint Compile File (.do)"
+      },
+      {
+        "command": "verilogLinter.toggleWarnings",
+        "title": "Toggle RTLint Linter Warnings"
+      }
+    ],
+    "configuration": {
+      "title": "RTLint",
+      "properties": {
+        "verilogLinter.compileFile": {
+          "type": "string",
+          "default": "",
+          "description": "Path to a .f file that lists source files to be compiled (relative to workspace root or absolute)."
+        },
+        "verilogLinter.showWarnings": {
+          "type": "boolean",
+          "default": true,
+          "description": "If false, warnings will be filtered out and only errors will be shown."
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "verilog",
+        "aliases": [
+          "Verilog",
+          "verilog"
+        ],
+        "extensions": [
+          ".v"
+        ]
+      },
+      {
+        "id": "systemverilog",
+        "aliases": [
+          "SystemVerilog",
+          "systemverilog"
+        ],
+        "extensions": [
+          ".sv",
+          ".svh"
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "tsc -p ./",
+    "compile": "tsc -p ./",
+    "watch": "tsc -w -p ./",
+    "package": "npx vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.84.0",
+    "@vscode/test-electron": "^2.3.0",
+    "@vscode/vsce": "^3.5.0",
+    "typescript": "^5.3.3"
+  }
+}

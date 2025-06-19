@@ -1,0 +1,12 @@
+[
+  {
+    "severity": "error",
+    "message": "expected ';'",
+    "location": "simple_example.v:1:68"
+  },
+  {
+    "severity": "error",
+    "message": "expected ';'",
+    "location": "simple_example.v:5:17"
+  }
+]
